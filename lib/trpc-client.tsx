@@ -1,6 +1,6 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
 import { useState } from "react";
@@ -10,7 +10,14 @@ import type { AppRouter } from "@/server/root";
 export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
 
 function makeQueryClient() {
-  return new QueryClient({
+  const queryClient: QueryClient = new QueryClient({
+    // Any saved change (a sale, a batch edit, …) can change dashboard figures such as the Inventory alert badge.
+    mutationCache: new MutationCache({
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          predicate: (query) => Array.isArray(query.queryKey[0]) && query.queryKey[0][0] === "dashboard",
+        }),
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30 * 1000,
@@ -23,6 +30,7 @@ function makeQueryClient() {
       },
     },
   });
+  return queryClient;
 }
 
 // A new QueryClient per server render (no data leaking between requests); one shared in the browser.

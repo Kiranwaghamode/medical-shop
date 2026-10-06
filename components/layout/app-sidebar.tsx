@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 import { Pill } from "lucide-react";
 import Link from "next/link";
@@ -12,15 +13,20 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { mainNavItems, newSaleItem, settingsItem, type NavItem } from "@/lib/navigation";
+import { useTRPC } from "@/lib/trpc-client";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const trpc = useTRPC();
+  // Medicines needing attention; refreshed every minute and after any saved change (see lib/trpc-client.tsx).
+  const alerts = useQuery({ ...trpc.dashboard.alertCount.queryOptions(), staleTime: 60_000, refetchInterval: 5 * 60_000 });
 
   return (
     // print:hidden — bills are printed from the page itself (Phase 8), never with the app chrome.
@@ -56,6 +62,15 @@ export function AppSidebar() {
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <NavLink item={item} pathname={pathname} />
+                  {item.href === "/inventory" && !!alerts.data && (
+                    <SidebarMenuBadge
+                      className="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                      title={`${alerts.data} medicines need attention (expired, expiring, low or out of stock)`}
+                    >
+                      {alerts.data}
+                      <span className="sr-only"> medicines need attention</span>
+                    </SidebarMenuBadge>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

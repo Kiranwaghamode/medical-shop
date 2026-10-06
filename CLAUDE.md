@@ -107,6 +107,18 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
   the chosen paper (`?paper=A4|A5` overrides for one print); `Bill` has a compact A5 layout via
   `in-data-[paper=A5]:` variants. Thermal receipts are deferred (owner uses a normal printer).
 
+## Dashboard & charts
+
+- `services/dashboard.service.ts` `getDashboard`: today / yesterday / week / month by IST day (`salesPeriodRange`),
+  30-day daily totals summed in SQL (`AT TIME ZONE 'Asia/Kolkata'`) with zero-filled days, payment split, and stock
+  alerts from `loadMedicineSummaries` + `matchesFilter` (the same rules as the inventory filters). The sidebar
+  Inventory badge uses `dashboard.alertCount`; any successful mutation invalidates dashboard queries
+  (MutationCache in `lib/trpc-client.tsx`).
+- Charts follow the dataviz skill: `components/dashboard/sales-chart.tsx` is plain SVG (no chart library), one series
+  in palette slot-1 blue validated against the white card, ≤24px bars at ~60% of the band, 4px rounded tops,
+  hairline grid, selective label (best day only), per-column hover/focus tooltip, and a Table view. `ColumnChart` is
+  pure, so it can be rendered to static HTML and screenshotted with headless Chrome to check layout.
+
 ## Tests (Vitest)
 
 - `npm test` — unit tests (`*.test.ts`), no database, < 1 s.

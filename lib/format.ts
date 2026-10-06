@@ -71,3 +71,16 @@ export function formatDayRange(from: string, to: string): string {
   if (a.month !== b.month) return `${a.day} ${a.month} – ${b.day} ${b.month} ${b.year}`;
   return `${a.day} – ${b.day} ${b.month} ${b.year}`;
 }
+
+/**
+ * Change from a previous period, e.g. today vs yesterday: { label: "+12%", direction: "up" }.
+ * No previous figure → no percentage (a % of zero means nothing).
+ */
+export function percentChange(current: string, previous: string): { label: string | null; direction: "up" | "down" | "flat" } {
+  const now = Number(current);
+  const before = Number(previous);
+  if (before === 0) return { label: null, direction: now > 0 ? "up" : "flat" };
+  const change = Math.round(((now - before) / before) * 100);
+  if (change === 0) return { label: "0%", direction: "flat" };
+  return { label: `${change > 0 ? "+" : "−"}${Math.abs(change)}%`, direction: change > 0 ? "up" : "down" };
+}

@@ -73,7 +73,7 @@ export type MedicineListItem = {
 } & StockSummary;
 
 // "inactive" shows only deactivated medicines; every other filter applies to active ones.
-function matchesFilter(item: MedicineListItem, filter: InventoryFilter): boolean {
+export function matchesFilter(item: MedicineListItem, filter: InventoryFilter): boolean {
   if (filter === "inactive") return !item.isActive;
   if (!item.isActive) return false;
   switch (filter) {
@@ -96,18 +96,44 @@ function matchesFilter(item: MedicineListItem, filter: InventoryFilter): boolean
  * catalogue of a few thousand medicines.
  */
 export async function listMedicines(shopId: string, input: InventoryListInput) {
-  const search = input.search?.trim();
-  const searchWhere: Prisma.MedicineWhereInput = search
+  // Active and inactive together, so every filter tab's count is always available.
+  const all = await loadMedicineSummaries(shopId, input.search);
+  const items = all.filter((item) => matchesFilter(item, input.filter));
+  const start = (input.page - 1) * input.pageSize;
+
+  return {
+    items: items.slice(start, start + input.pageSize),
+    total: items.length,
+    page: input.page,
+    pageSize: input.pageSize,
+    // Counts for the filter tabs (within the current search).
+    counts: {
+      all: all.filter((i) => matchesFilter(i, "all")).length,
+      low: all.filter((i) => matchesFilter(i, "low")).length,
+      out: all.filter((i) => matchesFilter(i, "out")).length,
+      expiring: all.filter((i) => matchesFilter(i, "expiring")).length,
+      expired: all.filter((i) => matchesFilter(i, "expired")).length,
+      inactive: all.filter((i) => matchesFilter(i, "inactive")).length,
+    } satisfies Record<InventoryFilter, number>,
+  };
+}
+
+/**
+ * Every medicine of the shop (active and inactive, optionally matching a search) with its stock figures and status.
+ * Shared by the inventory list and the dashboard alerts, so both always agree.
+ */
+export async function loadMedicineSummaries(shopId: string, search?: string): Promise<MedicineListItem[]> {
+  const query = search?.trim();
+  const searchWhere: Prisma.MedicineWhereInput = query
     ? {
         OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { genericName: { contains: search, mode: "insensitive" } },
-          { barcode: { startsWith: search } },
+          { name: { contains: query, mode: "insensitive" } },
+          { genericName: { contains: query, mode: "insensitive" } },
+          { barcode: { startsWith: query } },
         ],
       }
     : {};
 
-  // Active and inactive together, so every filter tab's count is always available.
   const medicines = await db.medicine.findMany({
     where: { shopId, ...searchWhere },
     orderBy: { name: "asc" },
@@ -129,7 +155,7 @@ export async function listMedicines(shopId: string, input: InventoryListInput) {
   });
 
   const today = todayInIndia();
-  const all: MedicineListItem[] = medicines.map(({ batches, gstRate, ...medicine }) => {
+  return medicines.map(({ batches, gstRate, ...medicine }) => {
     const sellableMrps = batches.filter((b) => b.expiryDate >= today).map((b) => b.mrp);
     const sorted = [...sellableMrps].sort((a, b) => a.comparedTo(b));
     return {
@@ -140,25 +166,6 @@ export async function listMedicines(shopId: string, input: InventoryListInput) {
       ...summarizeStock(medicine, batches, today),
     };
   });
-
-  const items = all.filter((item) => matchesFilter(item, input.filter));
-  const start = (input.page - 1) * input.pageSize;
-
-  return {
-    items: items.slice(start, start + input.pageSize),
-    total: items.length,
-    page: input.page,
-    pageSize: input.pageSize,
-    // Counts for the filter tabs (within the current search).
-    counts: {
-      all: all.filter((i) => matchesFilter(i, "all")).length,
-      low: all.filter((i) => matchesFilter(i, "low")).length,
-      out: all.filter((i) => matchesFilter(i, "out")).length,
-      expiring: all.filter((i) => matchesFilter(i, "expiring")).length,
-      expired: all.filter((i) => matchesFilter(i, "expired")).length,
-      inactive: all.filter((i) => matchesFilter(i, "inactive")).length,
-    } satisfies Record<InventoryFilter, number>,
-  };
 }
 
 /** One medicine with all its batches (earliest expiry first). */

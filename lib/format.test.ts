@@ -8,6 +8,7 @@ import {
   formatPacks,
   formatPercent,
   formatUnits,
+  percentChange,
 } from "@/lib/format";
 
 const strip15 = { packSize: 15, unitLabel: "tablet", packLabel: "strip" };
@@ -63,5 +64,18 @@ describe("dates for sales", () => {
     expect(formatDayRange("2026-10-01", "2026-10-06")).toBe("1 – 6 Oct 2026");
     expect(formatDayRange("2026-09-28", "2026-10-06")).toBe("28 Sep – 6 Oct 2026");
     expect(formatDayRange("2026-12-28", "2027-01-03")).toBe("28 Dec 2026 – 3 Jan 2027");
+  });
+});
+
+describe("percentChange", () => {
+  it("shows a signed whole-number percentage", () => {
+    expect(percentChange("112.00", "100.00")).toEqual({ label: "+12%", direction: "up" });
+    expect(percentChange("75.00", "100.00")).toEqual({ label: "−25%", direction: "down" });
+    expect(percentChange("100.40", "100.00")).toEqual({ label: "0%", direction: "flat" });
+  });
+
+  it("has no percentage when there was nothing before", () => {
+    expect(percentChange("50.00", "0.00")).toEqual({ label: null, direction: "up" });
+    expect(percentChange("0.00", "0.00")).toEqual({ label: null, direction: "flat" });
   });
 });
