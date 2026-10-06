@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { formatExpiry, formatINR, formatPercent, plural } from "@/lib/format";
+import { formatDateTime, formatExpiry, formatINR, formatPercent, plural } from "@/lib/format";
 import type { getSale } from "@/services/sales.service";
 
 export type BillSale = Awaited<ReturnType<typeof getSale>>;
@@ -10,8 +10,6 @@ export const PAGE_MARGIN: Record<PaperSize, string> = { A4: "10mm", A5: "7mm" };
 
 const PAYMENT: Record<BillSale["paymentMethod"], string> = { CASH: "Cash", UPI: "UPI", CARD: "Card" };
 
-const dateTime = (date: Date) =>
-  date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 /**
  * The printed bill (A4 / A5 on a normal printer). Prices are GST-inclusive; GST is shown as included, per rate.
@@ -49,7 +47,7 @@ export function Bill({ sale, paperSize }: { sale: BillSale; paperSize: PaperSize
 
       <section className="grid grid-cols-2 gap-x-6 gap-y-1 border-b border-black/20 py-3 in-data-[paper=A5]:py-2">
         <Info label="Invoice No." value={sale.invoiceNumber} strong />
-        <Info label="Date" value={dateTime(sale.createdAt)} />
+        <Info label="Date" value={formatDateTime(sale.createdAt)} />
         {sale.customerName && <Info label="Patient / Customer" value={sale.customerName} />}
         {sale.customerPhone && <Info label="Phone" value={sale.customerPhone} />}
         {sale.doctorName && <Info label="Doctor" value={sale.doctorName} />}

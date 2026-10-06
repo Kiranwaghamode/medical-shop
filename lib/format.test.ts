@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { formatCount, formatExpiry, formatINR, formatPacks, formatPercent, formatUnits } from "@/lib/format";
+import {
+  formatCount,
+  formatDateTime,
+  formatDayRange,
+  formatExpiry,
+  formatINR,
+  formatPacks,
+  formatPercent,
+  formatUnits,
+} from "@/lib/format";
 
 const strip15 = { packSize: 15, unitLabel: "tablet", packLabel: "strip" };
 const sachet = { packSize: 1, unitLabel: "sachet", packLabel: "sachet" };
@@ -34,10 +43,25 @@ describe("format", () => {
   it("shows expiry as month and year without shifting the date", () => {
     expect(formatExpiry(new Date("2027-03-31T00:00:00Z"))).toBe("Mar 2027");
     expect(formatExpiry(new Date("2026-12-31T00:00:00Z"))).toBe("Dec 2026");
+    expect(formatExpiry(new Date("2027-09-30T00:00:00Z"))).toBe("Sep 2027"); // not "Sept"
   });
 
   it("formats GST rates", () => {
     expect(formatPercent("5")).toBe("5%");
     expect(formatPercent("12.50")).toBe("12.5%");
+  });
+});
+
+describe("dates for sales", () => {
+  it("shows a sale's time in India", () => {
+    // 11:00 UTC = 4:30 pm IST
+    expect(formatDateTime(new Date("2026-10-06T11:00:00Z")).replace(/\s/g, " ")).toBe("6 Oct 2026, 4:30 pm");
+  });
+
+  it("labels day ranges compactly", () => {
+    expect(formatDayRange("2026-10-06", "2026-10-06")).toBe("6 Oct 2026");
+    expect(formatDayRange("2026-10-01", "2026-10-06")).toBe("1 – 6 Oct 2026");
+    expect(formatDayRange("2026-09-28", "2026-10-06")).toBe("28 Sep – 6 Oct 2026");
+    expect(formatDayRange("2026-12-28", "2027-01-03")).toBe("28 Dec 2026 – 3 Jan 2027");
   });
 });

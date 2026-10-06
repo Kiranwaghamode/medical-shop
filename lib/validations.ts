@@ -167,3 +167,27 @@ export const shopSettingsSchema = z.object({
   autoPrint: z.boolean(),
 });
 export type ShopSettingsInput = z.output<typeof shopSettingsSchema>;
+
+const isoDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, "Choose a date");
+
+export const salesListSchema = z
+  .object({
+    // Invoice number, customer name or phone.
+    search: z.string().trim().max(100).optional(),
+    period: z.enum(["today", "week", "month", "custom", "all"]).default("today"),
+    // Indian calendar dates, both included; only for period = "custom".
+    from: isoDate.optional(),
+    to: isoDate.optional(),
+    paymentMethod: z.enum(["CASH", "UPI", "CARD"]).optional(),
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(100).default(25),
+  })
+  .refine((input) => input.period !== "custom" || (input.from && input.to), {
+    path: ["from"],
+    message: "Choose both dates",
+  })
+  .refine((input) => !input.from || !input.to || input.from <= input.to, {
+    path: ["to"],
+    message: "The end date is before the start date",
+  });
+export type SalesListInput = z.output<typeof salesListSchema>;

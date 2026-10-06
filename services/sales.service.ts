@@ -1,14 +1,14 @@
 import "server-only";
 import { Prisma } from "@/generated/prisma/client";
 import { allocateCart, priceCart, type CartProduct } from "@/lib/cart";
-import { addDays, dateToExpiryMonth, todayInIndia } from "@/lib/dates";
+import { addDays, dateToExpiryMonth, salesPeriodRange, todayInIndia } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { plural } from "@/lib/format";
 import { financialYear } from "@/lib/invoice";
 import { EXPIRY_WARNING_DAYS } from "@/lib/inventory-status";
 import { fromPaise, PricingError, unitPricePaise } from "@/lib/pricing";
-import type { CreateSaleInput, ProductSearchInput } from "@/lib/validations";
+import type { CreateSaleInput, ProductSearchInput, SalesListInput } from "@/lib/validations";
 import { nextInvoiceNumber } from "@/services/invoice.service";
 
 // Every function takes the caller's shopId first and only ever touches that shop's data.
@@ -387,5 +387,68 @@ export async function getSale(shopId: string, id: string) {
     gstSummary: [...byRate]
       .sort(([a], [b]) => Number(a) - Number(b))
       .map(([rate, { taxable, tax }]) => ({ rate, taxable: money(taxable), tax: money(tax) })),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Sales history
+
+/**
+ * Saved sales, newest first, filtered by Indian-calendar period, payment method and a search over invoice number,
+ * customer name and phone — plus totals for everything that matches (not just this page).
+ */
+export async function listSales(shopId: string, input: SalesListInput) {
+  const range = salesPeriodRange(input.period, { from: input.from, to: input.to });
+  const search = input.search?.trim();
+
+  const where: Prisma.SaleWhereInput = {
+    shopId,
+    ...(range && { createdAt: { gte: range.start, lt: range.end } }),
+    ...(input.paymentMethod && { paymentMethod: input.paymentMethod }),
+    ...(search && {
+      OR: [
+        { invoiceNumber: { contains: search, mode: "insensitive" } },
+        { customerName: { contains: search, mode: "insensitive" } },
+        { customerPhone: { contains: search } },
+      ],
+    }),
+  };
+
+  const [sales, totals] = await Promise.all([
+    db.sale.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { invoiceNumber: "desc" }],
+      skip: (input.page - 1) * input.pageSize,
+      take: input.pageSize,
+      select: {
+        id: true,
+        invoiceNumber: true,
+        createdAt: true,
+        customerName: true,
+        customerPhone: true,
+        doctorName: true,
+        paymentMethod: true,
+        total: true,
+        _count: { select: { items: true } },
+      },
+    }),
+    db.sale.aggregate({ where, _count: true, _sum: { total: true, discount: true, taxTotal: true } }),
+  ]);
+
+  const money = (value: Prisma.Decimal | null) => (value ?? new Prisma.Decimal(0)).toFixed(2);
+
+  return {
+    sales: sales.map(({ _count, total, ...sale }) => ({ ...sale, total: money(total), lineCount: _count.items })),
+    total: totals._count,
+    page: input.page,
+    pageSize: input.pageSize,
+    summary: {
+      bills: totals._count,
+      amount: money(totals._sum.total),
+      discount: money(totals._sum.discount),
+      tax: money(totals._sum.taxTotal),
+    },
+    // The Indian dates covered, for showing "1 Oct – 6 Oct"; null = all time.
+    range: range && { from: range.from, to: range.to },
   };
 }

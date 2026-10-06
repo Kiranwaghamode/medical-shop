@@ -1,4 +1,4 @@
-import { createSaleSchema, productIdsSchema, productSearchSchema, saleIdSchema } from "@/lib/validations";
+import { createSaleSchema, productIdsSchema, productSearchSchema, saleIdSchema, salesListSchema } from "@/lib/validations";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc";
 import * as sales from "@/services/sales.service";
 
@@ -17,6 +17,11 @@ export const salesRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createSaleSchema)
     .mutation(({ ctx, input }) => sales.createSale(ctx.shopId, ctx.user.id, input)),
+
+  // Sales history: filtered, paged, with totals.
+  list: protectedProcedure
+    .input(salesListSchema)
+    .query(({ ctx, input }) => sales.listSales(ctx.shopId, input)),
 
   getById: protectedProcedure
     .input(saleIdSchema)

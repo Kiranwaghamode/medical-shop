@@ -140,7 +140,7 @@ export function PosScreen() {
         setState((s) => ({ ...emptyState(), paymentMethod: s.paymentMethod }));
         toast.success(`Sale saved — ${sale.invoiceNumber} · ${formatINR(sale.total)}`);
         await queryClient.invalidateQueries(trpc.inventory.pathFilter());
-        router.push(`/sales/${sale.id}?print=1`);
+        router.push(`/sales/${sale.id}?saved=1&print=1`);
       },
       onError: async (error) => {
         toast.error(error.message, { duration: 8000 });

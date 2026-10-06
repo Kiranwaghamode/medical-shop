@@ -1,4 +1,4 @@
-import { CheckCircle2, ShoppingCart } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ReceiptText, ShoppingCart } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,7 +7,7 @@ import { PrintControls } from "@/components/billing/print-controls";
 import { Button } from "@/components/ui/button";
 import { requireAllowedUser } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { formatINR } from "@/lib/format";
+import { formatDateTime, formatINR } from "@/lib/format";
 import { getSale } from "@/services/sales.service";
 
 export const metadata: Metadata = { title: "Bill" };
@@ -22,6 +22,8 @@ export default async function SalePage(props: PageProps<"/sales/[id]">) {
   });
 
   // ?paper=A4|A5 changes the paper for this print only; otherwise the shop's default from Settings.
+  // ?saved=1: arrived straight from Complete sale (vs. opened later from Sales History).
+  const justSaved = searchParams.saved === "1";
   const paperSize: PaperSize = searchParams.paper === "A4" || searchParams.paper === "A5" ? searchParams.paper : sale.shop.billPaperSize;
 
   return (
@@ -31,22 +33,33 @@ export default async function SalePage(props: PageProps<"/sales/[id]">) {
 
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-muted/40 p-4 print:hidden">
         <div className="flex items-center gap-3">
-          <CheckCircle2 className="size-6 text-emerald-600" />
+          {justSaved ? <CheckCircle2 className="size-6 text-emerald-600" /> : <ReceiptText className="size-6 text-muted-foreground" />}
           <div>
             <p className="font-medium">
-              Sale saved — {sale.invoiceNumber} · {formatINR(sale.total)}
+              {justSaved ? "Sale saved — " : ""}
+              {sale.invoiceNumber} · {formatINR(sale.total)}
             </p>
-            <p className="text-sm text-muted-foreground">Stock has been deducted. Print the bill for the customer.</p>
+            <p className="text-sm text-muted-foreground">
+              {justSaved ? "Stock has been deducted. Print the bill for the customer." : `Sold ${formatDateTime(sale.createdAt)}`}
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {/* Right after a sale (?print=1), if the shop prints automatically. */}
           <PrintControls autoPrint={searchParams.print === "1" && sale.shop.autoPrint} paperSize={paperSize} />
-          <Button asChild variant="outline">
-            <Link href="/sales/new">
-              <ShoppingCart /> New sale
-            </Link>
-          </Button>
+          {justSaved ? (
+            <Button asChild variant="outline">
+              <Link href="/sales/new">
+                <ShoppingCart /> New sale
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild variant="outline">
+              <Link href="/sales">
+                <ArrowLeft /> Sales history
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
