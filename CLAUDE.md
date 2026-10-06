@@ -35,7 +35,10 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
 
 - `server/trpc.ts` — tRPC init, context, procedures. `server/root.ts` — `appRouter`. `server/routers/*` — one router per area.
 - `app/api/trpc/[trpc]/route.ts` — tRPC HTTP endpoint. `lib/trpc-client.tsx` — browser client + `TRPCReactProvider`.
-- `services/*` — business logic (added from Phase 5). Routers validate input and delegate; no business logic in React components.
+- `services/*` — business logic. Routers validate input and delegate; no business logic in React components.
+  `services/user.service.ts` `ensureUser()` creates the app User (and the single shared Shop on the very first sign-in).
+- Inside `protectedProcedure`, use `ctx.shopId` / `ctx.user` (app user, not the Clerk id). Pages get the same via
+  `await requireAllowedUser()`. Every query must be filtered by shopId (batches via `medicine: { shopId }`).
 - `lib/db.ts` — Prisma client (`db`). Import the client from `@/generated/prisma/client` (generated, git-ignored).
 - `lib/env.ts` — Zod-validated env, checked at server start via `instrumentation.ts`. Read env through `env`, not `process.env`.
 
@@ -46,6 +49,12 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
 - Schema changes: edit `prisma/schema.prisma`, then `npm run db:migrate -- --name <change>`.
   `migrate dev` does not regenerate the client in Prisma 7 — run `npm run db:generate` afterwards.
 - `.env` holds real secrets: never print, commit or overwrite it. `.env.example` documents the variables.
+- CHECK constraints (stock ≥ 0, sellingPrice ≤ mrp, total = subtotal − discount, lineTotal = unitPrice × qty, …) live
+  only in `prisma/migrations/*_safety_checks/migration.sql` — Prisma's schema can't express them. A violation throws
+  a Prisma error naming the constraint; services should turn it into a friendly message. Add new rules the same way
+  (`prisma migrate dev --create-only`, then write the SQL).
+- Node scripts that import `lib/db.ts` (seed, one-off checks) must run with `tsx --conditions=react-server`,
+  because `lib/env.ts` imports `server-only`.
 
 ## Business rules that must not be broken (details in plan.md §9, §16, §17, §22, §29)
 
@@ -62,3 +71,4 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
 - `npm run build` / `npm start` — production build / run
 - `npm run lint`, `npx tsc --noEmit` — checks
 - `npm run db:migrate`, `npm run db:generate`, `npm run db:studio` — Prisma
+- `npm run db:seed` — sample medicines / batches (dev only; re-runnable, resets only the sample rows)

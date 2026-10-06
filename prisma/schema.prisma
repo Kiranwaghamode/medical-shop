@@ -7,10 +7,163 @@ datasource db {
   provider = "postgresql"
 }
 
-// Minimal starting model. Users, medicines, batches and sales are added in Phase 3.
+// Conventions
+// - Money: Decimal (never Float). Unit prices Decimal(10,2), totals Decimal(12,2), GST rates Decimal(5,2) e.g. 12.00.
+// - Prices are GST-INCLUSIVE (MRP style); the GST portion is back-calculated: price × rate / (100 + rate).
+// - Timestamps are timestamptz (stored in UTC). Expiry dates are plain dates.
+// - Nothing that a sale refers to is ever hard-deleted: medicines are deactivated (isActive = false).
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+}
+
+// One shared shop for now (all ALLOWED_EMAILS users). Details are edited in Settings and printed on bills.
 model Shop {
   id        String   @id @default(cuid())
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  address   String?
+  phone     String?
+  gstin     String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  users           User[]
+  medicines       Medicine[]
+  sales           Sale[]
+  invoiceCounters InvoiceCounter[]
+}
+
+// A signed-in Clerk user, linked to their shop on first sign-in.
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String
+  name      String?
+  shopId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  shop  Shop   @relation(fields: [shopId], references: [id])
+  sales Sale[]
+
+  @@index([shopId])
+}
+
+model Medicine {
+  id           String   @id @default(cuid())
+  shopId       String
+  name         String
+  genericName  String?
+  category     String?
+  manufacturer String?
+  barcode      String?
+  gstRate      Decimal  @db.Decimal(5, 2)
+  // Low-stock threshold for the medicine's total stock across all its batches.
+  minimumStock Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  shop      Shop             @relation(fields: [shopId], references: [id])
+  batches   InventoryBatch[]
+  saleItems SaleItem[]
+
+  @@unique([shopId, barcode])
+  @@index([shopId, isActive, name])
+}
+
+// Stock of one medicine from one manufacturer batch. Scoped to a shop through its medicine.
+model InventoryBatch {
+  id            String   @id @default(cuid())
+  medicineId    String
+  batchNumber   String
+  // Pharma packs print month/year; store the last day of that month.
+  expiryDate    DateTime @db.Date
+  mrp           Decimal  @db.Decimal(10, 2)
+  purchasePrice Decimal  @db.Decimal(10, 2)
+  // GST-inclusive price per unit; must not exceed mrp.
+  sellingPrice  Decimal  @db.Decimal(10, 2)
+  quantity      Int
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+
+  medicine  Medicine   @relation(fields: [medicineId], references: [id])
+  saleItems SaleItem[]
+
+  @@unique([medicineId, batchNumber])
+  // FEFO: pick the batch that expires first.
+  @@index([medicineId, expiryDate])
+  // Expiry alerts and reports.
+  @@index([expiryDate])
+}
+
+model Sale {
+  id            String        @id @default(cuid())
+  shopId        String
+  // Who completed the sale.
+  userId        String
+  // e.g. INV-2026-27-000001; unique within the shop.
+  invoiceNumber String
+  // Indian financial year the invoice is numbered in, e.g. "2026-27".
+  financialYear String
+  // Sum of line totals (GST-inclusive), before discount.
+  subtotal      Decimal       @db.Decimal(12, 2)
+  discount      Decimal       @default(0) @db.Decimal(12, 2)
+  // GST contained in the final total.
+  taxTotal      Decimal       @db.Decimal(12, 2)
+  // Amount paid: subtotal − discount.
+  total         Decimal       @db.Decimal(12, 2)
+  paymentMethod PaymentMethod
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+
+  shop  Shop       @relation(fields: [shopId], references: [id])
+  user  User       @relation(fields: [userId], references: [id])
+  items SaleItem[]
+
+  @@unique([shopId, invoiceNumber])
+  @@index([shopId, createdAt])
+}
+
+// One line on a bill. Name, batch, expiry, MRP and GST rate are copied at sale time so old bills
+// never change when a medicine or batch is edited later.
+model SaleItem {
+  id           String   @id @default(cuid())
+  saleId       String
+  medicineId   String
+  batchId      String
+  medicineName String
+  batchNumber  String
+  expiryDate   DateTime @db.Date
+  mrp          Decimal  @db.Decimal(10, 2)
+  gstRate      Decimal  @db.Decimal(5, 2)
+  quantity     Int
+  // GST-inclusive price per unit actually charged.
+  unitPrice    Decimal  @db.Decimal(10, 2)
+  // unitPrice × quantity (GST-inclusive).
+  lineTotal    Decimal  @db.Decimal(12, 2)
+  // GST contained in lineTotal.
+  taxAmount    Decimal  @db.Decimal(12, 2)
+
+  sale     Sale           @relation(fields: [saleId], references: [id])
+  medicine Medicine       @relation(fields: [medicineId], references: [id])
+  batch    InventoryBatch @relation(fields: [batchId], references: [id])
+
+  @@index([saleId])
+  // Top-selling medicines report.
+  @@index([medicineId])
+  @@index([batchId])
+}
+
+// Next invoice number per shop per financial year. Incremented inside the sale transaction.
+model InvoiceCounter {
+  shopId        String
+  financialYear String
+  lastNumber    Int    @default(0)
+
+  shop Shop @relation(fields: [shopId], references: [id])
+
+  @@id([shopId, financialYear])
 }

@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { isEmailAllowed } from "@/lib/access";
+import { ensureUser } from "@/services/user.service";
 
 export type Access =
   | { status: "signed-out" }
@@ -20,10 +21,11 @@ export const getAccess = cache(async (): Promise<Access> => {
   return { status: "allowed", userId, email };
 });
 
-// For pages and layouts: redirects anyone who may not use the app.
-export async function requireAllowedUser() {
+// For pages and layouts: redirects anyone who may not use the app, and returns the app user
+// (created with the shop on first sign-in). Cached per request.
+export const requireAllowedUser = cache(async () => {
   const access = await getAccess();
   if (access.status === "signed-out") redirect("/login");
   if (access.status === "denied") redirect("/access-denied");
-  return access;
-}
+  return ensureUser(access.userId, access.email);
+});

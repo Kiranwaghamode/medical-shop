@@ -36,3 +36,4 @@ The app checks its environment variables at startup and stops with a clear messa
 | `npm run db:migrate` | Apply schema changes to the database |
 | `npm run db:generate` | Regenerate the Prisma client |
 | `npm run db:studio` | Browse the database |
+| `npm run db:seed` | Add sample medicines and batches for development (safe to re-run) |

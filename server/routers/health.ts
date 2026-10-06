@@ -8,11 +8,15 @@ export const healthRouter = createTRPCRouter({
     .input(z.object({ message: z.string().trim().max(100).optional() }).optional())
     .query(async ({ ctx, input }) => {
       const started = Date.now();
-      await ctx.db.$queryRaw`SELECT 1`;
+      const shop = await ctx.db.shop.findUniqueOrThrow({
+        where: { id: ctx.shopId },
+        select: { name: true },
+      });
       return {
         ok: true,
         echo: input?.message ?? "pong",
         user: ctx.user.email,
+        shop: shop.name,
         database: "connected" as const,
         dbLatencyMs: Date.now() - started,
         serverTime: new Date(),

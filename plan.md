@@ -1267,6 +1267,11 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - Authentication is **Google sign-in only** (via Clerk). Mobile number + OTP login was dropped by the owner on 2026-10-06.
 - Access is limited to the Google accounts in `ALLOWED_EMAILS` (.env); others see an Access denied page. Email comes from a custom Clerk session-token claim. Roles/staff management stay in Version 3.
 - Phase 2's "user profile / logout" UI is built as part of Phase 4's header (Clerk `UserButton`) instead of a throwaway menu.
+- **Pricing is GST-inclusive (MRP).** The selling price already includes GST; bills show the GST portion back-calculated
+  (`gst = price × rate / (100 + rate)`). Each batch stores its MRP and the backend never allows selling above it.
+- **Invoice numbers restart each Indian financial year (1 April).** Format `INV-2026-27-000001`; one counter row per shop per FY.
+- **One shared shop.** All `ALLOWED_EMAILS` users belong to the same shop, created automatically on the first sign-in and
+  editable in Settings. Multiple shops remain a Version 3 feature.
 
 ## Phase 1 stages
 
