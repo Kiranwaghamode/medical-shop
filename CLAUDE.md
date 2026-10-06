@@ -91,6 +91,18 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
   GST back-calculated per line from (lineTotal − discount). Results satisfy the DB CHECK constraints.
 - Throws `PricingError` for invalid input; the sales service should turn it into a BAD_REQUEST AppError.
 
+## Sales (`services/sales.service.ts`)
+
+- `createSale` is the ONLY way a sale is saved: one transaction that re-reads stock/prices, re-runs `allocateCart`
+  + `priceCart`, deducts stock with guarded `updateMany` (quantity ≥ n, not expired; batches in id order),
+  takes `nextInvoiceNumber` (atomic upsert per shop + financial year) and creates Sale + SaleItems (snapshots).
+- The POS sends only medicineId / soldBy / quantity / batchId (+ discount, payment, customer) and a
+  `clientRequestId`; a repeated ID returns the already-saved sale (no double billing).
+- Bill page `/sales/[id]` is a Server Component calling `getSale(user.shopId, id)` directly; `components/billing/bill.tsx`
+  is the printable bill; `?print=1` opens the print dialog once. Printing hides the whole sidebar via
+  `[data-slot="sidebar"]` in `app/globals.css` (its width spacer isn't covered by `print:hidden`).
+- Single computer, single user: concurrency stress tests were skipped at the owner's request (plan.md §29).
+
 ## Tests (Vitest)
 
 - `npm test` — unit tests (`*.test.ts`), no database, < 1 s.

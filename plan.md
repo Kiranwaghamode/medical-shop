@@ -1286,6 +1286,12 @@ If this workflow works reliably, the core medical-shop inventory system is worki
   medicines). Blank for walk-in sales. Full customer management stays in Version 2.
 - **Prices can't be edited at the counter**: they always come from the batch's selling price (pack) or that price ÷
   pack size (loose), recalculated on the server.
+- **Single computer, single user at a time** (owner, 2026-10-06). Concurrency stress tests for sales (Phase 7, Stage 3)
+  were skipped at the owner's request. The safeguards stay in place regardless: guarded stock updates, the atomic
+  invoice counter (tested with parallel requests in Phase 7 Stage 1) and the one-time request ID against double-clicks.
+- **Basic bill printing arrived early, in Phase 7** (owner's request): `/sales/[id]` shows the printable bill with a
+  Print button, and the print dialog opens automatically after Complete sale. Phase 8 still adds Settings (shop
+  address, phone, GSTIN on the bill), the thermal-receipt layout and print options.
 - **POS auto-splits a line across batches** (earliest expiry first) when one batch doesn't have enough stock;
   expired batches are never offered.
 

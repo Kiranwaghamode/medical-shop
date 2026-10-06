@@ -100,3 +100,40 @@ export const productSearchSchema = z.object({
   limit: z.number().int().min(1).max(50).default(20),
 });
 export type ProductSearchInput = z.output<typeof productSearchSchema>;
+
+// What the POS sends to complete a sale. No prices or totals: the server reads them from the database.
+export const createSaleSchema = z.object({
+  // One-time ID per sale (double-click / retry protection).
+  clientRequestId: z.string().min(8).max(64),
+  items: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(64),
+        medicineId: z.string().min(1),
+        soldBy: z.enum(["PACK", "UNIT"]),
+        quantity: wholeNumber().min(1, "Quantity must be at least 1").max(100_000),
+        // null = take from the batches that expire first.
+        batchId: z.string().min(1).nullable(),
+      }),
+    )
+    .min(1, "The cart is empty")
+    .max(200, "Too many lines on one bill"),
+  discount: z
+    .object({ type: z.enum(["PERCENT", "AMOUNT"]), value: z.string().trim().max(20) })
+    .nullable()
+    .transform((d) => (d && d.value !== "" ? d : null)),
+  paymentMethod: z.enum(["CASH", "UPI", "CARD"]),
+  customerName: optionalText(100),
+  customerPhone: z
+    .string()
+    .trim()
+    .max(15, "Must be 15 characters or fewer")
+    .regex(/^[0-9+\- ]*$/, "Use only digits, spaces, + and -")
+    .optional()
+    .transform((value) => value || null),
+  doctorName: optionalText(100),
+});
+export type CreateSaleInput = z.output<typeof createSaleSchema>;
+
+export const saleIdSchema = z.object({ id });
+export const productIdsSchema = z.object({ ids: z.array(id).min(1).max(200) });

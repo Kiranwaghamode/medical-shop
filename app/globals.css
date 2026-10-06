@@ -128,3 +128,14 @@
     @apply font-sans;
   }
 }
+
+/* Printing: only the page content (e.g. a bill), never the app chrome. The sidebar's invisible width spacer
+   ("sidebar-gap") is outside the element print:hidden is applied to, so hide the whole sidebar here. */
+@media print {
+  [data-slot="sidebar"] {
+    display: none !important;
+  }
+  @page {
+    margin: 10mm;
+  }
+}

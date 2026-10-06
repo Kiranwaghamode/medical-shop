@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Segmented } from "@/components/pos/segmented";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,8 @@ export function CheckoutPanel({
   grossBill,
   itemCount,
   blockedReason,
+  saving,
+  onComplete,
   onClear,
 }: {
   customer: Customer;
@@ -44,6 +46,8 @@ export function CheckoutPanel({
   itemCount: number;
   // Why the sale can't be completed yet, or null.
   blockedReason: string | null;
+  saving: boolean;
+  onComplete: () => void;
   onClear: () => void;
 }) {
   const shown = bill ?? grossBill;
@@ -143,12 +147,11 @@ export function CheckoutPanel({
         </dl>
       </CardContent>
       <CardFooter className="flex flex-col gap-2">
-        <Button size="lg" className="w-full" disabled title={blockedReason ?? undefined}>
-          Complete sale
+        <Button size="lg" className="w-full" disabled={!!blockedReason || saving} onClick={onComplete}>
+          {saving && <Loader2 className="animate-spin" />}
+          {saving ? "Saving…" : `Complete sale · ${formatINR(shown.total)}`}
         </Button>
-        <p className="text-center text-xs text-muted-foreground">
-          {blockedReason ?? "Saving the sale and deducting stock arrives in Phase 7."}
-        </p>
+        <p className="text-center text-xs text-muted-foreground">{blockedReason ?? "Ctrl + Enter to complete. The bill opens for printing."}</p>
         <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={onClear} disabled={itemCount === 0}>
           <Trash2 /> Clear cart
         </Button>
