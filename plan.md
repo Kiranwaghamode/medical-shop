@@ -1273,6 +1273,12 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - **One shared shop.** All `ALLOWED_EMAILS` users belong to the same shop, created automatically on the first sign-in and
   editable in Settings. Multiple shops remain a Version 3 feature.
 - **Settings page is built in Phase 8** (§23 never assigned it a phase): bills need the shop name, address, phone and GSTIN.
+- **Loose sales are supported.** Each medicine has a `packSize` (units per pack, e.g. 15 tablets per strip; 1 for
+  bottles/tubes). Batch `quantity` is counted in **units** (tablets). MRP and prices are entered **per pack**, as printed.
+  A sale line is sold either by pack (price = pack price, stock −= qty × packSize) or loose (price per unit =
+  pack price ÷ packSize rounded to paise, stock −= qty), so full-pack sales always charge exactly the pack price.
+  SaleItem records which way it was sold (Phase 6/7 schema).
+- **Automated tests with Vitest**, starting in Phase 5, focused on services (stock, money, validation rules).
 
 ## Phase 1 stages
 

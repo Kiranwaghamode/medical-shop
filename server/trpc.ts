@@ -4,6 +4,7 @@ import superjson from "superjson";
 import { z, ZodError } from "zod";
 import { getAccess } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { AppError } from "@/lib/errors";
 import { ensureUser } from "@/services/user.service";
 
 // Per-request context: database + who is calling (same check as the pages, see lib/auth.ts).
@@ -45,5 +46,12 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     throw new TRPCError({ code: "FORBIDDEN", message: "This account is not allowed to use the app." });
   }
   const user = await ensureUser(access.userId, access.email);
-  return next({ ctx: { user, shopId: user.shopId } });
+  const result = await next({ ctx: { user, shopId: user.shopId } });
+
+  // Expected business errors from services keep their code and friendly message.
+  if (!result.ok && result.error.cause instanceof AppError) {
+    const { code, message } = result.error.cause;
+    throw new TRPCError({ code, message, cause: result.error.cause });
+  }
+  return result;
 });

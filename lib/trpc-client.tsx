@@ -12,7 +12,15 @@ export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRou
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { staleTime: 30 * 1000 },
+      queries: {
+        staleTime: 30 * 1000,
+        // Retry network/server errors, but not 4xx (not found, not allowed, invalid input): those won't change.
+        retry: (failureCount, error) => {
+          const status = (error as { data?: { httpStatus?: number } }).data?.httpStatus;
+          if (status && status >= 400 && status < 500) return false;
+          return failureCount < 2;
+        },
+      },
     },
   });
 }

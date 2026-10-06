@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TRPCReactProvider } from "@/lib/trpc-client";
 import "./globals.css";
@@ -37,6 +38,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           <TRPCReactProvider>
             <TooltipProvider>{children}</TooltipProvider>
+            {/* Light only: the app has no dark mode yet, so don't follow the system theme. */}
+            <Toaster theme="light" position="top-right" />
           </TRPCReactProvider>
         </ClerkProvider>
       </body>

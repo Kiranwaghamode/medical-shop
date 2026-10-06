@@ -60,7 +60,12 @@ model Medicine {
   manufacturer String?
   barcode      String?
   gstRate      Decimal  @db.Decimal(5, 2)
-  // Low-stock threshold for the medicine's total stock across all its batches.
+  // Units per pack, e.g. 15 tablets per strip. 1 for items only sold whole (bottles, tubes).
+  packSize     Int      @default(1)
+  // Display names, e.g. "tablet" / "strip", "ml" / "bottle".
+  unitLabel    String   @default("unit")
+  packLabel    String   @default("pack")
+  // Low-stock threshold in UNITS, compared with sellable (non-expired) stock across all batches.
   minimumStock Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
@@ -81,10 +86,11 @@ model InventoryBatch {
   batchNumber   String
   // Pharma packs print month/year; store the last day of that month.
   expiryDate    DateTime @db.Date
+  // Prices are PER PACK, as printed. GST-inclusive; sellingPrice must not exceed mrp.
   mrp           Decimal  @db.Decimal(10, 2)
   purchasePrice Decimal  @db.Decimal(10, 2)
-  // GST-inclusive price per unit; must not exceed mrp.
   sellingPrice  Decimal  @db.Decimal(10, 2)
+  // Stock in UNITS (e.g. tablets), so loose sales can be deducted exactly.
   quantity      Int
   createdAt     DateTime @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @db.Timestamptz(3)

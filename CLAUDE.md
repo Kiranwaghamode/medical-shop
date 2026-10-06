@@ -19,7 +19,8 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
   Forms use the `field` component + react-hook-form + `@hookform/resolvers` — shadcn's old `form` component no longer exists.
 - tRPC v11 with `@trpc/tanstack-react-query` (NOT the classic `@trpc/react-query`):
   `const trpc = useTRPC(); useQuery(trpc.x.y.queryOptions(input))`;
-  invalidate with `queryClient.invalidateQueries(trpc.x.queryFilter())`.
+  invalidate a procedure with `queryClient.invalidateQueries(trpc.x.y.queryFilter())`, a whole router with
+  `trpc.x.pathFilter()` (routers have no `queryFilter`).
 - Zod v4 (`z.url()`, `z.flattenError()` — not the v3 APIs).
 - Prisma 7.10 (pinned; ignore the CLI's 8.0 RC upgrade notice) + `@prisma/adapter-neon`. Database is Neon PostgreSQL.
 - Clerk (`@clerk/nextjs` v7, "Core 3") — **Google sign-in only** (mobile OTP was dropped).
@@ -66,6 +67,25 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
 - Expired batches can never be sold. Money uses Prisma `Decimal` (or integer paise), never floats.
 - Every query is scoped to the signed-in user's `shopId`.
 - Bills print via `window.print()` and print CSS — no PDF generation.
+
+## Service conventions
+
+- Services take `shopId` as the first argument and filter every query by it.
+- Expected failures throw `AppError` (`lib/errors.ts`: NOT_FOUND / CONFLICT / BAD_REQUEST); `protectedProcedure`
+  turns them into TRPCErrors with the same code and message. Map DB constraint violations with `friendlyDbError`.
+  With the Neon adapter a CHECK violation is Prisma `P2039` (Postgres `23514`); the constraint name is in the message.
+- Money leaves services as strings with 2 decimals ("33.60"); never send Decimal objects to the client.
+- Shared Zod schemas live in `lib/validations.ts` (used by routers and forms).
+- Stock: batch `quantity` is in UNITS; MRP/prices are PER PACK; `Medicine.packSize` converts. Sellable stock excludes
+  expired batches (`lib/inventory-status.ts`). "Today" for expiry is `todayInIndia()` (`lib/dates.ts`).
+
+## Tests (Vitest)
+
+- `npm test` — unit tests (`*.test.ts`), no database, < 1 s.
+- `npm run test:db` — integration tests (`*.db.test.ts`) against the real Neon DB; each file creates its own
+  temporary shop(s) and deletes them in `afterAll`. Pre-create the test user in the test shop so `ensureUser()`
+  never attaches it to the real shop. Slow (~1 min) because Neon is remote.
+- Router tests use `createCaller` from `server/root.ts` with a fake `access` context.
 
 ## Commands
 
