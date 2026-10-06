@@ -137,3 +137,33 @@ export type CreateSaleInput = z.output<typeof createSaleSchema>;
 
 export const saleIdSchema = z.object({ id });
 export const productIdsSchema = z.object({ ids: z.array(id).min(1).max(200) });
+
+// ---------------------------------------------------------------------------------------------
+// Settings
+
+// GSTIN: 2-digit state code + PAN (5 letters, 4 digits, 1 letter) + entity number + "Z" + check character.
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+export const shopSettingsSchema = z.object({
+  name: z.string().trim().min(1, "Shop name is required").max(100, "Must be 100 characters or fewer"),
+  address: optionalText(300),
+  phone: z
+    .string()
+    .trim()
+    .max(40, "Must be 40 characters or fewer")
+    .regex(/^[0-9+\-/, ]*$/, "Use only digits, spaces, + - / and commas")
+    .optional()
+    .transform((value) => value || null),
+  gstin: z
+    .string()
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .refine((value) => value === "" || GSTIN_PATTERN.test(value), "Enter a valid 15-character GSTIN, e.g. 29ABCDE1234F1Z5")
+    .optional()
+    .transform((value) => value || null),
+  drugLicenseNumber: optionalText(100),
+  billFooter: optionalText(200),
+  billPaperSize: z.enum(["A4", "A5"]),
+  autoPrint: z.boolean(),
+});
+export type ShopSettingsInput = z.output<typeof shopSettingsSchema>;

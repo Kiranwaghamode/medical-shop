@@ -135,7 +135,5 @@
   [data-slot="sidebar"] {
     display: none !important;
   }
-  @page {
-    margin: 10mm;
-  }
+  /* Paper size and margins are set by the page being printed (e.g. the bill page: A4 / A5). */
 }

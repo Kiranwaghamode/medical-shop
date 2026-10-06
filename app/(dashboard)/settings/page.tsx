@@ -1,20 +1,17 @@
-import { Settings } from "lucide-react";
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { SettingsForm } from "@/components/settings/settings-form";
+import { requireAllowedUser } from "@/lib/auth";
+import { getSettings } from "@/services/settings.service";
 
 export const metadata: Metadata = { title: "Settings" };
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const user = await requireAllowedUser();
+  const settings = await getSettings(user.shopId);
+
   return (
-    <ComingSoon
-      icon={Settings}
-      title="Settings"
-      phase="Phase 8 (bills need the shop details)"
-      features={[
-        "Shop name, address and phone",
-        "GSTIN",
-        "Invoice settings",
-      ]}
-    />
+    <div className="p-6">
+      <SettingsForm initial={settings} email={user.email} />
+    </div>
   );
 }

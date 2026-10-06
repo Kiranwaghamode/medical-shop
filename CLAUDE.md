@@ -102,6 +102,10 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
   is the printable bill; `?print=1` opens the print dialog once. Printing hides the whole sidebar via
   `[data-slot="sidebar"]` in `app/globals.css` (its width spacer isn't covered by `print:hidden`).
 - Single computer, single user: concurrency stress tests were skipped at the owner's request (plan.md §29).
+- Shop settings (`services/settings.service.ts`, `/settings`): name, address, phone, GSTIN (validated), Drug
+  Licence No., bill footer, default paper size (A5 | A4) and auto-print. The bill page sets `@page` size/margins for
+  the chosen paper (`?paper=A4|A5` overrides for one print); `Bill` has a compact A5 layout via
+  `in-data-[paper=A5]:` variants. Thermal receipts are deferred (owner uses a normal printer).
 
 ## Tests (Vitest)
 

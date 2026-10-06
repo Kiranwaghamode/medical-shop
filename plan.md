@@ -1292,6 +1292,9 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - **Basic bill printing arrived early, in Phase 7** (owner's request): `/sales/[id]` shows the printable bill with a
   Print button, and the print dialog opens automatically after Complete sale. Phase 8 still adds Settings (shop
   address, phone, GSTIN on the bill), the thermal-receipt layout and print options.
+- **Bills print on a normal printer (A4 / A5)**, default A5 (owner, Phase 8). Thermal 80 mm / 58 mm receipt layouts are
+  deferred until a receipt printer is bought. Settings hold the shop name, address, phone, GSTIN, Drug Licence No.,
+  bill footer, default paper size and auto-print after sale.
 - **POS auto-splits a line across batches** (earliest expiry first) when one batch doesn't have enough stock;
   expired batches are never offered.
 

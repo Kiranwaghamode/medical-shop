@@ -331,7 +331,9 @@ export async function getSale(shopId: string, id: string) {
   const sale = await db.sale.findFirst({
     where: { id, shopId },
     include: {
-      shop: { select: { name: true, address: true, phone: true, gstin: true } },
+      shop: {
+        select: { name: true, address: true, phone: true, gstin: true, drugLicenseNumber: true, billFooter: true, billPaperSize: true, autoPrint: true },
+      },
       user: { select: { email: true } },
       // Lines were created in bill order; cuid ids sort in creation order.
       items: { orderBy: { id: "asc" }, include: { medicine: { select: { unitLabel: true, packLabel: true } } } },

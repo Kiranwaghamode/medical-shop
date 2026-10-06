@@ -30,15 +30,27 @@ enum DiscountType {
   AMOUNT
 }
 
+// Paper the bill is printed on (normal printer). A5 = half an A4 sheet.
+enum PaperSize {
+  A4
+  A5
+}
+
 // One shared shop for now (all ALLOWED_EMAILS users). Details are edited in Settings and printed on bills.
 model Shop {
-  id        String   @id @default(cuid())
-  name      String
-  address   String?
-  phone     String?
-  gstin     String?
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  id                String    @id @default(cuid())
+  name              String
+  address           String?
+  phone             String?
+  gstin             String?
+  // Printed on bills.
+  drugLicenseNumber String?
+  billFooter        String?
+  billPaperSize     PaperSize @default(A5)
+  // Open the print dialog automatically after each completed sale.
+  autoPrint         Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
 
   users           User[]
   medicines       Medicine[]
