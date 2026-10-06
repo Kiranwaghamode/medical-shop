@@ -5,6 +5,7 @@ import {
   expiryMonthToDate,
   indiaDayStart,
   indiaIsoDate,
+  lastMonthDays,
   salesPeriodRange,
   todayInIndia,
 } from "@/lib/dates";
@@ -90,5 +91,15 @@ describe("salesPeriodRange", () => {
 
   it("returns no range for all time", () => {
     expect(range("all")).toBeNull();
+  });
+});
+
+describe("lastMonthDays", () => {
+  it("gives the whole previous month, across year ends and short months", () => {
+    expect(lastMonthDays(new Date("2026-10-06T06:00:00Z"))).toEqual({ from: "2026-09-01", to: "2026-09-30" });
+    expect(lastMonthDays(new Date("2027-01-15T06:00:00Z"))).toEqual({ from: "2026-12-01", to: "2026-12-31" });
+    expect(lastMonthDays(new Date("2028-03-01T06:00:00Z"))).toEqual({ from: "2028-02-01", to: "2028-02-29" });
+    // 00:10 IST on 1 Nov is still 31 Oct in UTC, but in India it's November, so last month is October.
+    expect(lastMonthDays(new Date("2026-10-31T18:40:00Z"))).toEqual({ from: "2026-10-01", to: "2026-10-31" });
   });
 });

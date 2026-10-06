@@ -67,3 +67,12 @@ export function salesPeriodRange(
   }
   return { start: indiaDayStart(from), end: indiaDayStart(day(to, 1)), from, to };
 }
+
+/** The previous calendar month in India, e.g. on 6 Oct 2026 → 1 Sep to 30 Sep 2026 (for monthly GST filing). */
+export function lastMonthDays(now: Date = new Date()): { from: string; to: string } {
+  const today = indiaIsoDate(now);
+  const [year, month] = today.split("-").map(Number);
+  const first = new Date(Date.UTC(year, month - 2, 1));
+  const last = new Date(Date.UTC(year, month - 1, 0));
+  return { from: first.toISOString().slice(0, 10), to: last.toISOString().slice(0, 10) };
+}

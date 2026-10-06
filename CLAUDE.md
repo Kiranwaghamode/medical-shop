@@ -119,6 +119,14 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
   hairline grid, selective label (best day only), per-column hover/focus tooltip, and a Table view. `ColumnChart` is
   pure, so it can be rendered to static HTML and screenshotted with headless Chrome to check layout.
 
+## Reports (`services/reports.service.ts`, `/reports`)
+
+- Sales (by IST day, payment method, GST rate with CGST/SGST — odd paisa to CGST so CGST + SGST = GST), top medicines
+  (net of discount, or units), stock value (per-pack prices × units ÷ packSize; expired separately), expiry (30/60/90
+  days + expired). Periods: today / week / month / last-month / custom (≤ 1 year). Money totals are summed on the
+  server with Decimal — never add money in the browser.
+- Reports print (A4 portrait, `PrintHeader` + compact `ReportTable`); there is no CSV/Excel export (owner's choice).
+
 ## Tests (Vitest)
 
 - `npm test` — unit tests (`*.test.ts`), no database, < 1 s.

@@ -78,7 +78,8 @@ export function SalesChart({ days }: { days: ChartDay[] }) {
   );
 }
 
-function ResponsiveChart({ days }: { days: ChartDay[] }) {
+/** ColumnChart that fits its container's width (also used by the Sales report). */
+export function ResponsiveChart({ days }: { days: ChartDay[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(720);
   const [active, setActive] = useState<number | null>(null);

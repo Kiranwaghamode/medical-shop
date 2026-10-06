@@ -191,3 +191,35 @@ export const salesListSchema = z
     message: "The end date is before the start date",
   });
 export type SalesListInput = z.output<typeof salesListSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// Reports
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const reportRangeSchema = z
+  .object({
+    period: z.enum(["today", "week", "month", "last-month", "custom"]).default("month"),
+    from: isoDate.optional(),
+    to: isoDate.optional(),
+  })
+  .refine((input) => input.period !== "custom" || (input.from && input.to), { path: ["from"], message: "Choose both dates" })
+  .refine((input) => !input.from || !input.to || input.from <= input.to, { path: ["to"], message: "The end date is before the start date" })
+  .refine(
+    (input) => !input.from || !input.to || (Date.parse(input.to) - Date.parse(input.from)) / DAY_MS < 366,
+    { path: ["to"], message: "Choose a range of one year or less" },
+  );
+export type ReportRangeInput = z.output<typeof reportRangeSchema>;
+
+export const topMedicinesSchema = z.object({
+  range: reportRangeSchema,
+  sortBy: z.enum(["amount", "quantity"]).default("amount"),
+  limit: z.number().int().min(1).max(200).default(50),
+});
+export type TopMedicinesInput = z.output<typeof topMedicinesSchema>;
+
+export const expiryReportSchema = z.object({
+  // Batches already expired, plus those expiring within this many days.
+  withinDays: z.union([z.literal(30), z.literal(60), z.literal(90)]).default(90),
+});
+export type ExpiryReportInput = z.output<typeof expiryReportSchema>;

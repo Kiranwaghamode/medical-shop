@@ -1,6 +1,7 @@
 import { dashboardRouter } from "@/server/routers/dashboard";
 import { healthRouter } from "@/server/routers/health";
 import { inventoryRouter } from "@/server/routers/inventory";
+import { reportsRouter } from "@/server/routers/reports";
 import { salesRouter } from "@/server/routers/sales";
 import { settingsRouter } from "@/server/routers/settings";
 import { createCallerFactory, createTRPCRouter } from "@/server/trpc";
@@ -9,6 +10,7 @@ export const appRouter = createTRPCRouter({
   dashboard: dashboardRouter,
   health: healthRouter,
   inventory: inventoryRouter,
+  reports: reportsRouter,
   sales: salesRouter,
   settings: settingsRouter,
 });

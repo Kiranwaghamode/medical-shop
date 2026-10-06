@@ -1295,6 +1295,8 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - **Bills print on a normal printer (A4 / A5)**, default A5 (owner, Phase 8). Thermal 80 mm / 58 mm receipt layouts are
   deferred until a receipt printer is bought. Settings hold the shop name, address, phone, GSTIN, Drug Licence No.,
   bill footer, default paper size and auto-print after sale.
+- **Reports can be printed; no Excel/CSV download** (owner dropped CSV export, Phase 11). Reports: sales (by day, payment method and GST rate
+  with CGST/SGST split), top-selling medicines, stock value, expiry. Presets include "Last month" for monthly GST filing.
 - **POS auto-splits a line across batches** (earliest expiry first) when one batch doesn't have enough stock;
   expired batches are never offered.
 
@@ -1318,3 +1320,9 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - Validate/cap discount on the backend.
 - POS: auto-select the batch that expires first (FEFO), with manual override.
 - ~~Verify Clerk phone OTP support and SMS pricing for Indian (+91) numbers.~~ Not needed: mobile OTP dropped (see Decisions).
+
+## MVP status (2026-10-06)
+
+All 11 MVP phases are built and committed: setup, Google sign-in with an email allow-list, database with safety
+rules, app layout, inventory (batches, loose tablets), POS, sale transaction with invoice numbers, A4/A5 bill printing
+and shop settings, sales history, dashboard, and reports. Version 2 / 3 features (§24, §25) are not started.

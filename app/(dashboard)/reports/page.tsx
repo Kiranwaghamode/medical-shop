@@ -1,21 +1,14 @@
-import { ChartColumn } from "lucide-react";
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { Suspense } from "react";
+import { ReportsView } from "@/components/reports/reports-view";
 
 export const metadata: Metadata = { title: "Reports" };
 
 export default function ReportsPage() {
   return (
-    <ComingSoon
-      icon={ChartColumn}
-      title="Reports"
-      phase="Phase 11"
-      features={[
-        "Daily, weekly, monthly and date-range sales",
-        "Top-selling medicines",
-        "Stock report",
-        "Expiry report",
-      ]}
-    />
+    // ReportsView reads the tab and filters from the URL.
+    <Suspense>
+      <ReportsView />
+    </Suspense>
   );
 }
