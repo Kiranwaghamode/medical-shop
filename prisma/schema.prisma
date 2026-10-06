@@ -19,6 +19,17 @@ enum PaymentMethod {
   CARD
 }
 
+// How a sale line was sold: whole packs (strips, bottles) or loose units (tablets).
+enum SoldBy {
+  PACK
+  UNIT
+}
+
+enum DiscountType {
+  PERCENT
+  AMOUNT
+}
+
 // One shared shop for now (all ALLOWED_EMAILS users). Details are edited in Settings and printed on bills.
 model Shop {
   id        String   @id @default(cuid())
@@ -116,12 +127,20 @@ model Sale {
   financialYear String
   // Sum of line totals (GST-inclusive), before discount.
   subtotal      Decimal       @db.Decimal(12, 2)
+  // How the discount was entered (e.g. PERCENT 10 → "10%"), shown on the bill; null = no discount.
+  discountType  DiscountType?
+  discountValue Decimal?      @db.Decimal(12, 2)
+  // Discount in rupees, as calculated by lib/pricing.ts.
   discount      Decimal       @default(0) @db.Decimal(12, 2)
   // GST contained in the final total.
   taxTotal      Decimal       @db.Decimal(12, 2)
   // Amount paid: subtotal − discount.
   total         Decimal       @db.Decimal(12, 2)
   paymentMethod PaymentMethod
+  // Optional, printed on the bill (e.g. for prescription medicines). Blank for walk-in sales.
+  customerName  String?
+  customerPhone String?
+  doctorName    String?
   createdAt     DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
 
@@ -136,22 +155,28 @@ model Sale {
 // One line on a bill. Name, batch, expiry, MRP and GST rate are copied at sale time so old bills
 // never change when a medicine or batch is edited later.
 model SaleItem {
-  id           String   @id @default(cuid())
-  saleId       String
-  medicineId   String
-  batchId      String
-  medicineName String
-  batchNumber  String
-  expiryDate   DateTime @db.Date
-  mrp          Decimal  @db.Decimal(10, 2)
-  gstRate      Decimal  @db.Decimal(5, 2)
-  quantity     Int
-  // GST-inclusive price per unit actually charged.
-  unitPrice    Decimal  @db.Decimal(10, 2)
-  // unitPrice × quantity (GST-inclusive).
-  lineTotal    Decimal  @db.Decimal(12, 2)
-  // GST contained in lineTotal.
-  taxAmount    Decimal  @db.Decimal(12, 2)
+  id             String   @id @default(cuid())
+  saleId         String
+  medicineId     String
+  batchId        String
+  medicineName   String
+  batchNumber    String
+  expiryDate     DateTime @db.Date
+  mrp            Decimal  @db.Decimal(10, 2)
+  gstRate        Decimal  @db.Decimal(5, 2)
+  // Sold by pack (quantity = packs) or loose (quantity = single units).
+  soldBy         SoldBy
+  quantity       Int
+  // Stock units removed from the batch: quantity × packSize for PACK, quantity for UNIT.
+  unitsDeducted  Int
+  // GST-inclusive price per item as sold (pack price, or pack price ÷ pack size for loose). mrp is per item too.
+  unitPrice      Decimal  @db.Decimal(10, 2)
+  // unitPrice × quantity (GST-inclusive), before discount.
+  lineTotal      Decimal  @db.Decimal(12, 2)
+  // This line's share of the bill discount.
+  discountAmount Decimal  @default(0) @db.Decimal(12, 2)
+  // GST contained in (lineTotal − discountAmount).
+  taxAmount      Decimal  @db.Decimal(12, 2)
 
   sale     Sale           @relation(fields: [saleId], references: [id])
   medicine Medicine       @relation(fields: [medicineId], references: [id])

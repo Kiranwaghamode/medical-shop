@@ -1279,6 +1279,15 @@ If this workflow works reliably, the core medical-shop inventory system is worki
   pack price ÷ packSize rounded to paise, stock −= qty), so full-pack sales always charge exactly the pack price.
   SaleItem records which way it was sold (Phase 6/7 schema).
 - **Automated tests with Vitest**, starting in Phase 5, focused on services (stock, money, validation rules).
+- **Discount: one bill-level discount, entered as % or ₹, no cap** (owner's choice; replaces "cap discount" in the
+  pending fixes). The backend still rejects a discount above the subtotal and recalculates it. The discount is spread
+  across lines in proportion to their value, and GST is back-calculated from each line's discounted amount.
+- **Optional customer name, phone and prescribing doctor on each sale**, printed on the bill (useful for Schedule H
+  medicines). Blank for walk-in sales. Full customer management stays in Version 2.
+- **Prices can't be edited at the counter**: they always come from the batch's selling price (pack) or that price ÷
+  pack size (loose), recalculated on the server.
+- **POS auto-splits a line across batches** (earliest expiry first) when one batch doesn't have enough stock;
+  expired batches are never offered.
 
 ## Phase 1 stages
 

@@ -212,7 +212,7 @@ describe("deleting", () => {
         items: {
           create: {
             medicineId: id, batchId: sold.batches[0].id, medicineName: "Sold", batchNumber: "B1",
-            expiryDate: sold.batches[0].expiryDate, mrp: "50.00", gstRate: "5", quantity: 1,
+            expiryDate: sold.batches[0].expiryDate, mrp: "50.00", gstRate: "5", soldBy: "PACK", quantity: 1, unitsDeducted: 10,
             unitPrice: "50.00", lineTotal: "50.00", taxAmount: "2.38",
           },
         },

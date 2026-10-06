@@ -91,3 +91,12 @@ export type BatchFields = z.output<typeof batchFieldsSchema>;
 export type InventoryFilter = z.output<typeof inventoryFilterSchema>;
 export type InventoryListInput = z.output<typeof inventoryListSchema>;
 export type CreateMedicineInput = z.output<typeof createMedicineSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// Sales / POS
+
+export const productSearchSchema = z.object({
+  query: z.string().trim().max(100),
+  limit: z.number().int().min(1).max(50).default(20),
+});
+export type ProductSearchInput = z.output<typeof productSearchSchema>;

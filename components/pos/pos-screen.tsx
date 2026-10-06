@@ -1,0 +1,156 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { CartTable } from "@/components/pos/cart-table";
+import { CheckoutPanel, type Customer, type PaymentMethod } from "@/components/pos/checkout-panel";
+import { ProductSearch, type Product } from "@/components/pos/product-search";
+import { addToCart, allocateCart, priceCart, removeItem, switchSoldBy, updateItem, type CartItem } from "@/lib/cart";
+import { PricingError, type Bill } from "@/lib/pricing";
+
+type PosState = {
+  items: CartItem[];
+  // Product snapshots (batches, prices) from search, keyed by medicine id.
+  products: Record<string, Product>;
+  discountType: "PERCENT" | "AMOUNT";
+  discountValue: string;
+  paymentMethod: PaymentMethod;
+  customer: Customer;
+};
+
+const emptyState: PosState = {
+  items: [],
+  products: {},
+  discountType: "PERCENT",
+  discountValue: "",
+  paymentMethod: "CASH",
+  customer: { customerName: "", customerPhone: "", doctorName: "" },
+};
+
+// The cart survives a refresh or an accidental navigation. Stock and prices are re-checked when the sale is saved.
+const STORAGE_KEY = "medical-shop:pos-cart:v1";
+
+function loadState(): PosState {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!saved) return emptyState;
+    const state = JSON.parse(saved) as PosState;
+    // JSON turns dates into strings.
+    for (const product of Object.values(state.products)) {
+      for (const batch of product.batches) batch.expiryDate = new Date(batch.expiryDate);
+    }
+    return { ...emptyState, ...state };
+  } catch {
+    return emptyState;
+  }
+}
+
+/** The New Sale screen. Rendered on the client only (see app/(dashboard)/sales/new/page.tsx), so it can read localStorage. */
+export function PosScreen() {
+  const [state, setState] = useState<PosState>(loadState);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Storage full or disabled: the cart still works, it just won't survive a refresh.
+    }
+  }, [state]);
+
+  // F2 jumps to the search box from anywhere on the screen.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "F2") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const products = useMemo(() => new Map(Object.entries(state.products)), [state.products]);
+  const { allocations, shortages } = useMemo(() => allocateCart(state.items, products), [state.items, products]);
+  const grossBill = useMemo(() => priceCart(allocations, products, null), [allocations, products]);
+
+  const { bill, discountError } = useMemo((): { bill: Bill | null; discountError: string | null } => {
+    try {
+      return { bill: priceCart(allocations, products, { type: state.discountType, value: state.discountValue }), discountError: null };
+    } catch (error) {
+      if (!(error instanceof PricingError)) throw error;
+      const message = error.message.startsWith("Invalid") ? "Enter a number like 10 or 12.50" : error.message;
+      return { bill: null, discountError: message };
+    }
+  }, [allocations, products, state.discountType, state.discountValue]);
+
+  const update = (changes: Partial<PosState> | ((s: PosState) => Partial<PosState>)) =>
+    setState((s) => ({ ...s, ...(typeof changes === "function" ? changes(s) : changes) }));
+
+  // Keep only the product snapshots still used by the cart.
+  const withItems = (s: PosState, items: CartItem[]): Partial<PosState> => ({
+    items,
+    products: Object.fromEntries(Object.entries(s.products).filter(([id]) => items.some((i) => i.medicineId === id))),
+  });
+
+  function onAdd(product: Product) {
+    // Re-adding refreshes the snapshot with the latest stock and prices from search.
+    update((s) => ({ products: { ...s.products, [product.id]: product }, items: addToCart(s.items, product) }));
+  }
+
+  function onClear() {
+    const previous = state;
+    setState({ ...emptyState, paymentMethod: state.paymentMethod });
+    toast("Cart cleared", { action: { label: "Undo", onClick: () => setState(previous) } });
+    searchRef.current?.focus();
+  }
+
+  const blockedReason =
+    state.items.length === 0
+      ? "Add medicines to start a bill."
+      : shortages.length > 0
+        ? "Some items don't have enough stock — reduce the quantity or change the batch."
+        : discountError
+          ? "Fix the discount to continue."
+          : null;
+
+  return (
+    <div className="grid items-start gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <ProductSearch inputRef={searchRef} onAdd={onAdd} />
+        <CartTable
+          items={state.items}
+          products={products}
+          allocations={allocations}
+          shortages={shortages}
+          grossBill={grossBill}
+          onQuantity={(key, quantity) => update((s) => ({ items: updateItem(s.items, key, { quantity }) }))}
+          onSoldBy={(key) =>
+            update((s) => ({
+              items: s.items.map((i) => (i.key === key ? switchSoldBy(i, s.products[i.medicineId].packSize) : i)),
+            }))
+          }
+          onBatch={(key, batchId) => update((s) => ({ items: updateItem(s.items, key, { batchId }) }))}
+          onRemove={(key) => update((s) => withItems(s, removeItem(s.items, key)))}
+        />
+      </div>
+
+      <CheckoutPanel
+        customer={state.customer}
+        onCustomer={(customer) => update({ customer })}
+        discountType={state.discountType}
+        discountValue={state.discountValue}
+        onDiscountType={(discountType) => update({ discountType })}
+        onDiscountValue={(discountValue) => update({ discountValue })}
+        discountError={discountError}
+        paymentMethod={state.paymentMethod}
+        onPaymentMethod={(paymentMethod) => update({ paymentMethod })}
+        bill={bill}
+        grossBill={grossBill}
+        itemCount={state.items.length}
+        blockedReason={blockedReason}
+        onClear={onClear}
+      />
+    </div>
+  );
+}

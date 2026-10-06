@@ -53,9 +53,11 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
   `migrate dev` does not regenerate the client in Prisma 7 — run `npm run db:generate` afterwards.
 - `.env` holds real secrets: never print, commit or overwrite it. `.env.example` documents the variables.
 - CHECK constraints (stock ≥ 0, sellingPrice ≤ mrp, total = subtotal − discount, lineTotal = unitPrice × qty, …) live
-  only in `prisma/migrations/*_safety_checks/migration.sql` — Prisma's schema can't express them. A violation throws
+  only in migration SQL (`*_safety_checks`, `*_medicine_pack_size`, `*_sale_details`, `*_fix_discount_check`) —
+  Prisma's schema can't express them. A violation throws
   a Prisma error naming the constraint; services should turn it into a friendly message. Add new rules the same way
-  (`prisma migrate dev --create-only`, then write the SQL).
+  (`prisma migrate dev --create-only`, then write the SQL). Beware NULL: a CHECK passes when it evaluates to
+  NULL, so conditions on nullable columns need explicit `IS NOT NULL`. Never edit an applied migration — add a new one.
 - Node scripts that import `lib/db.ts` (seed, one-off checks) must run with `tsx --conditions=react-server`,
   because `lib/env.ts` imports `server-only`.
 
@@ -78,6 +80,16 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
 - Shared Zod schemas live in `lib/validations.ts` (used by routers and forms).
 - Stock: batch `quantity` is in UNITS; MRP/prices are PER PACK; `Medicine.packSize` converts. Sellable stock excludes
   expired batches (`lib/inventory-status.ts`). "Today" for expiry is `todayInIndia()` (`lib/dates.ts`).
+
+## Pricing (`lib/pricing.ts`)
+
+- `calculateBill(lines, discount)` is the ONLY bill maths: the POS uses it for the live preview, the server
+  re-runs it with prices read from the database and saves its result. Never compute totals anywhere else.
+- Integer paise in BigInt, half-up rounding; in/out as "33.60" strings (`toPaise` / `fromPaise`).
+- Sold by PACK: unit price = batch selling price. Sold by UNIT (loose): pack price ÷ packSize, rounded.
+- One bill discount (PERCENT or AMOUNT, no cap, ≤ subtotal), spread across lines by value (largest remainder);
+  GST back-calculated per line from (lineTotal − discount). Results satisfy the DB CHECK constraints.
+- Throws `PricingError` for invalid input; the sales service should turn it into a BAD_REQUEST AppError.
 
 ## Tests (Vitest)
 
