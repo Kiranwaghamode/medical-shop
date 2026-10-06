@@ -23,6 +23,8 @@ export function HealthCheck() {
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
           <dt className="text-muted-foreground">tRPC</dt>
           <dd className="font-medium text-green-600">OK — {ping.data.echo}</dd>
+          <dt className="text-muted-foreground">API user</dt>
+          <dd className="font-medium text-green-600">{ping.data.user}</dd>
           <dt className="text-muted-foreground">Database</dt>
           <dd className="font-medium text-green-600">
             {ping.data.database} ({ping.data.dbLatencyMs} ms)

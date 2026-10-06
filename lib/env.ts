@@ -18,12 +18,20 @@ const schema = z.object({
     "should be Neon's DIRECT connection string (host without -pooler)",
   ),
 
-  // Clerk: optional until Phase 2 (authentication), then required.
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z
+  // Clerk (Google sign-in). pk_test_/sk_test_ in development, pk_live_/sk_live_ in production.
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().startsWith("pk_", "should start with pk_"),
+  CLERK_SECRET_KEY: z.string().startsWith("sk_", "should start with sk_"),
+
+  // Google accounts allowed to use the app, comma-separated. Everyone else sees "Access denied".
+  ALLOWED_EMAILS: z
     .string()
-    .startsWith("pk_", "should start with pk_")
-    .optional(),
-  CLERK_SECRET_KEY: z.string().startsWith("sk_", "should start with sk_").optional(),
+    .transform((value) =>
+      value
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.email("contains an invalid email address")).min(1, "needs at least one email")),
 });
 
 export type Env = z.infer<typeof schema>;

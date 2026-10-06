@@ -16,6 +16,16 @@ npm run dev                 # http://localhost:3000
 
 The app checks its environment variables at startup and stops with a clear message if any are missing or wrong.
 
+### Clerk (sign-in) setup
+
+1. In the Clerk dashboard, enable **Google** as the only sign-in method (email/password off).
+2. **Sessions → Customize session token**, add:
+   ```json
+   { "email": "{{user.primary_email_address}}" }
+   ```
+   The app reads the email from this claim to check `ALLOWED_EMAILS`. Without it, everyone is denied.
+3. Put the Google accounts allowed to use the app in `ALLOWED_EMAILS` (comma-separated), then restart.
+
 ## Scripts
 
 | Command | What it does |

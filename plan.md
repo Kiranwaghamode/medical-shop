@@ -8,7 +8,7 @@ Build a production-ready web application for a medical shop to manage:
 - Sales and billing
 - Daily, weekly, and monthly sales dashboard
 - Printable bills
-- Authentication using Google and mobile number
+- Authentication using Google
 - Low-stock and expiry alerts
 - Sales history and reports
 
@@ -49,7 +49,7 @@ Sales / Dashboard Data
 | Data fetching | TanStack Query (via tRPC React client) |
 | Database | PostgreSQL |
 | ORM | Prisma |
-| Authentication | Clerk — Google + Mobile OTP |
+| Authentication | Clerk — Google sign-in |
 
 ### Recommended architecture for this project
 
@@ -96,7 +96,7 @@ Trade-off: tRPC is TypeScript-client only. If a non-TypeScript client (e.g. a na
 External services:
 
 ```text
-Google / Mobile OTP
+Google
         ↓
      Clerk Auth
 
@@ -137,7 +137,6 @@ The Add/Edit Medicine form can be a modal or drawer instead of separate pages.
 
 ### 1. Login
 - Google authentication
-- Mobile number + OTP
 - Logout
 
 ### 2. Dashboard
@@ -938,7 +937,6 @@ Build the system in this order.
 
 - Configure Clerk
 - Google login
-- Mobile OTP
 - Protected routes
 - User profile
 - Logout
@@ -1196,7 +1194,6 @@ The first working version should contain exactly:
 
 ```text
 ✓ Google authentication
-✓ Mobile OTP authentication
 ✓ Dashboard
 ✓ Medicine CRUD
 ✓ Batch/stock management
@@ -1267,6 +1264,9 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - Database: **Neon**. `.env` uses `DATABASE_URL` (pooled, `-pooler` host) for runtime and `DIRECT_URL` (direct host) for Prisma migrations. The user pastes the values into `.env` themselves; never commit `.env`.
 - Project lives outside OneDrive (e.g. `C:\dev\medical-shop`) to avoid `node_modules` sync issues.
 - Work is done in small, verifiable stages; outline stages before starting each phase.
+- Authentication is **Google sign-in only** (via Clerk). Mobile number + OTP login was dropped by the owner on 2026-10-06.
+- Access is limited to the Google accounts in `ALLOWED_EMAILS` (.env); others see an Access denied page. Email comes from a custom Clerk session-token claim. Roles/staff management stay in Version 3.
+- Phase 2's "user profile / logout" UI is built as part of Phase 4's header (Clerk `UserButton`) instead of a throwaway menu.
 
 ## Phase 1 stages
 
@@ -1287,4 +1287,4 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - `SaleItem` should snapshot medicine name, batch number, expiry, and GST rate at sale time.
 - Validate/cap discount on the backend.
 - POS: auto-select the batch that expires first (FEFO), with manual override.
-- Verify Clerk phone OTP support and SMS pricing for Indian (+91) numbers.
+- ~~Verify Clerk phone OTP support and SMS pricing for Indian (+91) numbers.~~ Not needed: mobile OTP dropped (see Decisions).

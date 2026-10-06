@@ -22,7 +22,14 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
   invalidate with `queryClient.invalidateQueries(trpc.x.queryFilter())`.
 - Zod v4 (`z.url()`, `z.flattenError()` — not the v3 APIs).
 - Prisma 7.10 (pinned; ignore the CLI's 8.0 RC upgrade notice) + `@prisma/adapter-neon`. Database is Neon PostgreSQL.
-- Clerk for auth (Google + mobile OTP) — added in Phase 2.
+- Clerk (`@clerk/nextjs` v7, "Core 3") — **Google sign-in only** (mobile OTP was dropped).
+  `<SignedIn>`/`<SignedOut>`/`<Protect>` were REMOVED in Core 3 (they still type-check but throw at runtime):
+  use `<Show when="signed-in">` / `<Show when="signed-out">`. `clerkMiddleware()` lives in `proxy.ts`
+  (Next 16 renamed `middleware.ts` → `proxy.ts`). Sign-in page: `app/(auth)/login/[[...login]]/page.tsx`.
+- Access = signed in AND email in `ALLOWED_EMAILS` (email comes from the custom session-token claim `email`).
+  `createRouteMatcher` is deprecated — do NOT put access rules in `proxy.ts`. Check where the resource lives:
+  pages via `app/(dashboard)/layout.tsx` + `requireAllowedUser()` (`lib/auth.ts`); data via tRPC `protectedProcedure`.
+  New app pages go inside `app/(dashboard)/`.
 
 ## Layout
 

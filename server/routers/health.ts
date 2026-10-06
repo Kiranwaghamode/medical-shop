@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "@/server/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/trpc";
 
 export const healthRouter = createTRPCRouter({
-  // Checks the full path: browser → tRPC → Prisma → Neon.
-  ping: publicProcedure
+  // Checks the full path: browser → tRPC → auth → Prisma → Neon.
+  // Protected so anonymous visitors can't use it to hit the database.
+  ping: protectedProcedure
     .input(z.object({ message: z.string().trim().max(100).optional() }).optional())
     .query(async ({ ctx, input }) => {
       const started = Date.now();
@@ -11,6 +12,7 @@ export const healthRouter = createTRPCRouter({
       return {
         ok: true,
         echo: input?.message ?? "pong",
+        user: ctx.user.email,
         database: "connected" as const,
         dbLatencyMs: Date.now() - started,
         serverTime: new Date(),
