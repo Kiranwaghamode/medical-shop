@@ -1272,6 +1272,7 @@ If this workflow works reliably, the core medical-shop inventory system is worki
 - **Invoice numbers restart each Indian financial year (1 April).** Format `INV-2026-27-000001`; one counter row per shop per FY.
 - **One shared shop.** All `ALLOWED_EMAILS` users belong to the same shop, created automatically on the first sign-in and
   editable in Settings. Multiple shops remain a Version 3 feature.
+- **Settings page is built in Phase 8** (§23 never assigned it a phase): bills need the shop name, address, phone and GSTIN.
 
 ## Phase 1 stages
 

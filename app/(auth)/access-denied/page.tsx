@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAccess } from "@/lib/auth";
 
-export const metadata: Metadata = { title: "Access denied — Medical Shop" };
+export const metadata: Metadata = { title: "Access denied" };
 
 // Shown to signed-in Google accounts that are not in ALLOWED_EMAILS.
 export default async function AccessDeniedPage() {
   const access = await getAccess();
   if (access.status === "signed-out") redirect("/login");
-  if (access.status === "allowed") redirect("/");
+  if (access.status === "allowed") redirect("/dashboard");
   const { email } = access;
 
   return (

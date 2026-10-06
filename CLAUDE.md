@@ -29,7 +29,9 @@ phase-by-phase build order live in `plan.md` — read it before starting new wor
 - Access = signed in AND email in `ALLOWED_EMAILS` (email comes from the custom session-token claim `email`).
   `createRouteMatcher` is deprecated — do NOT put access rules in `proxy.ts`. Check where the resource lives:
   pages via `app/(dashboard)/layout.tsx` + `requireAllowedUser()` (`lib/auth.ts`); data via tRPC `protectedProcedure`.
-  New app pages go inside `app/(dashboard)/`.
+  New app pages go inside `app/(dashboard)/` (they get the sidebar + header automatically). Sidebar links and
+  header titles both come from `lib/navigation.ts`. Set `export const metadata = { title: "X" }` per page
+  (root layout adds "— Medical Shop"). App chrome is `print:hidden`, so printable pages need no extra work.
 
 ## Layout
 
