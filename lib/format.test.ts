@@ -39,6 +39,8 @@ describe("format", () => {
   it("shows units", () => {
     expect(formatUnits(1807, "tablet")).toBe("1,807 tablets");
     expect(formatUnits(1, "bottle")).toBe("1 bottle");
+    expect(formatUnits(3, "veterinary")).toBe("3 veterinaries");
+    expect(formatUnits(3, "tray")).toBe("3 trays");
   });
 
   it("shows expiry as month and year without shifting the date", () => {

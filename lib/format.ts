@@ -14,9 +14,10 @@ export function formatCount(value: number): string {
   return count.format(value);
 }
 
-/** "tablet", 1 → "tablet"; "tablet", 3 → "tablets" */
+/** "tablet", 1 → "tablet"; "tablet", 3 → "tablets"; "veterinary", 3 → "veterinaries" */
 export function plural(label: string, n: number): string {
-  return n === 1 ? label : `${label}s`;
+  if (n === 1) return label;
+  return /[^aeiou]y$/i.test(label) ? `${label.slice(0, -1)}ies` : `${label}s`;
 }
 
 type PackInfo = { packSize: number; unitLabel: string; packLabel: string };

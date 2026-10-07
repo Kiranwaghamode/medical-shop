@@ -37,6 +37,8 @@ export const medicineFieldsSchema = z.object({
     .regex(/^[A-Za-z0-9-]*$/, "Use only letters, digits and dashes")
     .optional()
     .transform((value) => value || null),
+  // Optional: GENERIC | ETHICAL; blank = not set.
+  medicineType: z.enum(["GENERIC", "ETHICAL"]).nullish().transform((value) => value ?? null),
   gstRate: gstRateSchema,
   packSize: wholeNumber().min(1, "At least 1").max(1000, "At most 1000"),
   unitLabel: z.string().trim().min(1, "Required").max(20, "Must be 20 characters or fewer"),

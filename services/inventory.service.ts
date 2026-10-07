@@ -1,5 +1,5 @@
 import "server-only";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, type MedicineType } from "@/generated/prisma/client";
 import { dateToExpiryMonth, expiryMonthToDate, todayInIndia, addDays } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { AppError, friendlyDbError } from "@/lib/errors";
@@ -61,6 +61,7 @@ export type MedicineListItem = {
   category: string | null;
   manufacturer: string | null;
   barcode: string | null;
+  medicineType: MedicineType | null;
   gstRate: string;
   packSize: number;
   unitLabel: string;
@@ -144,6 +145,7 @@ export async function loadMedicineSummaries(shopId: string, search?: string): Pr
       category: true,
       manufacturer: true,
       barcode: true,
+      medicineType: true,
       gstRate: true,
       packSize: true,
       unitLabel: true,

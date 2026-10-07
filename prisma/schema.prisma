@@ -30,6 +30,12 @@ enum DiscountType {
   AMOUNT
 }
 
+// Optional classification of a medicine: unbranded generic or branded (ethical) product.
+enum MedicineType {
+  GENERIC
+  ETHICAL
+}
+
 // Paper the bill is printed on (normal printer). A5 = half an A4 sheet.
 enum PaperSize {
   A4
@@ -82,6 +88,7 @@ model Medicine {
   category     String?
   manufacturer String?
   barcode      String?
+  medicineType MedicineType?
   gstRate      Decimal  @db.Decimal(5, 2)
   // Units per pack, e.g. 15 tablets per strip. 1 for items only sold whole (bottles, tubes).
   packSize     Int      @default(1)

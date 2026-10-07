@@ -38,6 +38,7 @@ describe("medicine form → API input", () => {
       category: null,
       manufacturer: null,
       barcode: null,
+      medicineType: null,
       gstRate: "5",
       packSize: 15,
       unitLabel: "tablet",
@@ -59,6 +60,17 @@ describe("medicine form → API input", () => {
     const input = toCreateMedicineInput(syrup);
     expect(input).toMatchObject({ unitLabel: "bottle", packLabel: "bottle", minimumStock: 8 });
     expect(input.firstBatch?.quantity).toBe(12);
+  });
+
+  it("sends the optional medicine type", () => {
+    expect(createMedicineSchema.parse(toCreateMedicineInput({ ...dolo, medicineType: "GENERIC" })).medicineType).toBe("GENERIC");
+  });
+
+  it("uses a free-text unit for veterinary / general items, defaulting to \"unit\"", () => {
+    const vet = { ...dolo, packLabel: "veterinary", packSize: "10", unitLabel: " ml " };
+    expect(createMedicineSchema.parse(toCreateMedicineInput(vet))).toMatchObject({ packLabel: "veterinary", unitLabel: "ml" });
+    expect(toCreateMedicineInput({ ...vet, packLabel: "general", unitLabel: "" }).unitLabel).toBe("unit");
+    expect(errors({ ...vet, unitLabel: "x".repeat(21) })).toMatchObject({ unitLabel: "Must be 20 characters or fewer" });
   });
 
   it("leaves out the batch when opening stock is switched off, and ignores its empty fields", () => {
@@ -87,9 +99,9 @@ describe("medicine form validation", () => {
 describe("editing an existing medicine", () => {
   it("turns stored units back into packs", () => {
     const values = medicineToFormValues({
-      name: "Dolo 650", genericName: null, category: "Analgesic", manufacturer: null, barcode: "890",
+      name: "Dolo 650", genericName: null, category: "Analgesic", manufacturer: null, barcode: "890", medicineType: "ETHICAL",
       gstRate: "5", packSize: 15, unitLabel: "tablet", packLabel: "strip", minimumStock: 450,
     });
-    expect(values).toMatchObject({ genericName: "", category: "Analgesic", minimumPacks: "30", packSize: "15", addBatch: false });
+    expect(values).toMatchObject({ genericName: "", medicineType: "ETHICAL", category: "Analgesic", minimumPacks: "30", packSize: "15", addBatch: false });
   });
 });

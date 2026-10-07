@@ -14,10 +14,12 @@ import { Switch } from "@/components/ui/switch";
 import { plural } from "@/lib/format";
 import {
   emptyMedicineForm,
+  FREE_UNIT_PACKS,
   GST_RATES,
+  MEDICINE_TYPES,
   medicineFormSchema,
   medicineToFormValues,
-  PACK_LABELS,
+  PACK_TYPES,
   toCreateMedicineInput,
   toUpdateMedicineFields,
   UNIT_LABELS,
@@ -26,7 +28,9 @@ import {
 import { useTRPC } from "@/lib/trpc-client";
 
 // Pack types that are sold whole: choosing one sets "units per pack" to 1.
-const SOLD_WHOLE = new Set(["bottle", "tube", "sachet", "vial"]);
+const SOLD_WHOLE = new Set(["bottle", "tube", "sachet", "vial", "perfume", "kit", "jar"]);
+// Radix Select can't have an empty item value: this one stands for "not set".
+const NOT_SET = "none";
 
 type EditableMedicine = Parameters<typeof medicineToFormValues>[0] & { id: string };
 
@@ -67,6 +71,7 @@ function MedicineForm({ mode, onDone }: { mode: MedicineDialogMode; onDone: () =
   const { register, control, handleSubmit, setValue, setError, formState } = form;
   const [packLabel, packSize, addBatch, mrp] = useWatch({ control, name: ["packLabel", "packSize", "addBatch", "mrp"] });
   const isMultiUnit = Number(packSize) > 1;
+  const isFreeUnit = FREE_UNIT_PACKS.has(packLabel);
 
   const onSuccess = async (name: string) => {
     await queryClient.invalidateQueries(trpc.inventory.pathFilter());
@@ -151,6 +156,30 @@ function MedicineForm({ mode, onDone }: { mode: MedicineDialogMode; onDone: () =
             <Input {...field("barcode")} placeholder="Scan or type" inputMode="numeric" />
             {error("barcode")}
           </Field>
+          <Field>
+            <FieldLabel htmlFor="medicineType">Medicine Type</FieldLabel>
+            <Controller
+              control={control}
+              name="medicineType"
+              render={({ field: { value, onChange } }) => (
+                <Select value={value || NOT_SET} onValueChange={(next) => onChange(next === NOT_SET ? "" : next)}>
+                  <SelectTrigger id="medicineType" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NOT_SET} className="text-muted-foreground">
+                      Not set
+                    </SelectItem>
+                    {MEDICINE_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
           <Field data-invalid={!!formState.errors.gstRate}>
             <FieldLabel htmlFor="gstRate">GST rate *</FieldLabel>
             <Controller
@@ -191,16 +220,20 @@ function MedicineForm({ mode, onDone }: { mode: MedicineDialogMode; onDone: () =
                   onValueChange={(next) => {
                     onChange(next);
                     if (SOLD_WHOLE.has(next)) setValue("packSize", "1");
-                    else if (packSize === "1") setValue("packSize", "10");
+                    else if (packSize === "1" && !FREE_UNIT_PACKS.has(next)) setValue("packSize", "10");
+                    // Switching between a free-text unit and the unit dropdown: start that field afresh.
+                    if (FREE_UNIT_PACKS.has(next) !== isFreeUnit) {
+                      setValue("unitLabel", FREE_UNIT_PACKS.has(next) ? "" : emptyMedicineForm.unitLabel);
+                    }
                   }}
                 >
-                  <SelectTrigger id="packLabel" className="w-full capitalize">
+                  <SelectTrigger id="packLabel" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PACK_LABELS.map((label) => (
-                      <SelectItem key={label} value={label} className="capitalize">
-                        {label}
+                    {PACK_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -213,7 +246,14 @@ function MedicineForm({ mode, onDone }: { mode: MedicineDialogMode; onDone: () =
             <Input {...field("packSize")} inputMode="numeric" />
             {error("packSize")}
           </Field>
-          {isMultiUnit && (
+          {isMultiUnit && isFreeUnit && (
+            <Field data-invalid={!!formState.errors.unitLabel}>
+              <FieldLabel htmlFor="unitLabel">Unit</FieldLabel>
+              <Input {...field("unitLabel")} placeholder="e.g. ml (optional)" />
+              {error("unitLabel")}
+            </Field>
+          )}
+          {isMultiUnit && !isFreeUnit && (
             <Field>
               <FieldLabel htmlFor="unitLabel">Unit</FieldLabel>
               <Controller

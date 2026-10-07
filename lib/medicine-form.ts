@@ -8,7 +8,28 @@ import { createMedicineSchema, medicineFieldsSchema, updateMedicineSchema } from
 export type CreateMedicineRequest = z.input<typeof createMedicineSchema>;
 export type MedicineFieldsRequest = z.input<typeof updateMedicineSchema>["data"];
 
-export const PACK_LABELS = ["strip", "bottle", "tube", "sachet", "box", "vial", "pack"] as const;
+// Pack types for the "Pack type" dropdown. `value` is stored as Medicine.packLabel and shown elsewhere
+// ("5 bottles", "MRP per jar"); `label` is only the dropdown text.
+export const PACK_TYPES = [
+  { value: "strip", label: "Strip" },
+  { value: "bottle", label: "Bottle/Syrups/Drops" },
+  { value: "tube", label: "Tube/Creams" },
+  { value: "sachet", label: "Sachet/Powders" },
+  { value: "box", label: "Box/Carton" },
+  { value: "vial", label: "Vial/Injec" },
+  { value: "pack", label: "Pack" },
+  { value: "perfume", label: "Perfume" },
+  { value: "kit", label: "Kit" },
+  { value: "jar", label: "Cerelac/Boost/Horlicks" },
+  { value: "veterinary", label: "Veterinary" },
+  { value: "general", label: "General" },
+] as const;
+// Pack types whose unit is typed freely (optional) instead of picked from UNIT_LABELS.
+export const FREE_UNIT_PACKS: ReadonlySet<string> = new Set(["veterinary", "general"]);
+export const MEDICINE_TYPES = [
+  { value: "GENERIC", label: "Generic" },
+  { value: "ETHICAL", label: "Ethical" },
+] as const;
 export const UNIT_LABELS = ["tablet", "capsule", "unit"] as const;
 // Current common GST slabs for medicines and related goods; any 0–100 rate is still accepted by the server.
 export const GST_RATES = ["0", "5", "12", "18", "28", "40"] as const;
@@ -19,6 +40,8 @@ export type MedicineFormValues = {
   category: string;
   manufacturer: string;
   barcode: string;
+  // "" = not set.
+  medicineType: "" | "GENERIC" | "ETHICAL";
   gstRate: string;
   packLabel: string;
   unitLabel: string;
@@ -34,6 +57,7 @@ export const emptyMedicineForm: MedicineFormValues = {
   category: "",
   manufacturer: "",
   barcode: "",
+  medicineType: "",
   gstRate: "5",
   packLabel: "strip",
   unitLabel: "tablet",
@@ -51,13 +75,21 @@ export function toMedicineFields(values: MedicineFormValues) {
     category: values.category,
     manufacturer: values.manufacturer,
     barcode: values.barcode,
+    medicineType: values.medicineType || null,
     gstRate: values.gstRate,
     packSize,
-    // Items sold whole (packSize 1) are counted in packs: "bottle", "sachet", …
-    unitLabel: packSize === 1 ? values.packLabel : values.unitLabel,
+    unitLabel: unitLabelFor(values, packSize),
     packLabel: values.packLabel,
     minimumStock: toNumber(values.minimumPacks || "0") * packSize,
   };
+}
+
+function unitLabelFor(values: MedicineFormValues, packSize: number) {
+  // Items sold whole (packSize 1) are counted in packs: "bottle", "sachet", …
+  if (packSize === 1) return values.packLabel;
+  // Veterinary / general: the unit is optional free text.
+  if (FREE_UNIT_PACKS.has(values.packLabel)) return values.unitLabel.trim() || "unit";
+  return values.unitLabel;
 }
 
 // Server field → form field, for showing server-schema errors next to the right input.
@@ -94,6 +126,7 @@ export function medicineToFormValues(medicine: {
   category: string | null;
   manufacturer: string | null;
   barcode: string | null;
+  medicineType: "GENERIC" | "ETHICAL" | null;
   gstRate: string;
   packSize: number;
   unitLabel: string;
@@ -107,6 +140,7 @@ export function medicineToFormValues(medicine: {
     category: medicine.category ?? "",
     manufacturer: medicine.manufacturer ?? "",
     barcode: medicine.barcode ?? "",
+    medicineType: medicine.medicineType ?? "",
     gstRate: String(Number(medicine.gstRate)),
     packSize: String(medicine.packSize),
     unitLabel: medicine.packSize === 1 ? emptyMedicineForm.unitLabel : medicine.unitLabel,
